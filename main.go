@@ -15,7 +15,7 @@ import (
 var logger *log.Logger
 
 const (
-	numUsers           = 1000
+	numUsers           = 100
 	minMessagesPerSeed = 1000
 	maxMessagesPerSeed = 10000
 )
