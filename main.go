@@ -3,10 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
@@ -33,9 +33,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
-	fmt.Println("Successfully connected to the database!")
+	log.Info("Successfully connected to the database!")
 
-	fmt.Println("Executing init.sql...")
+	log.Info("Executing init.sql...")
 	sqlFile, err := os.ReadFile("init.sql")
 	if err != nil {
 		log.Fatalf("Error reading SQL file: %v", err)
@@ -46,9 +46,9 @@ func main() {
 		log.Fatalf("Error executing SQL script: %v", err)
 	}
 
-	fmt.Println("SQL script (init.sql) executed successfully!")
+	log.Info("SQL script (init.sql) executed successfully!")
 
-	fmt.Printf("Generating and inserting %d users...\n", numUsers)
+	log.Info("Generating and inserting %d users...\n", numUsers)
 	userIDs := make([]uuid.UUID, numUsers)
 
 	stmt, err := db.Prepare("INSERT INTO users (id, username) VALUES ($1, $2)")
@@ -57,7 +57,7 @@ func main() {
 	}
 	defer stmt.Close()
 
-	for i := 0; i < numUsers; i++ {
+	for i := range numUsers {
 		userID := uuid.New()
 		username := fmt.Sprintf("user_%04d", i+1)
 		_, err = stmt.Exec(userID, username)
@@ -67,10 +67,7 @@ func main() {
 		userIDs[i] = userID
 	}
 
-	fmt.Printf("%d users inserted successfully!\n", numUsers)
-
-	numMessages := rand.Intn(maxMessagesPerSeed-minMessagesPerSeed+1) + minMessagesPerSeed
-	fmt.Printf("Generating and inserting %d messages...\n", numMessages)
+	log.Info("%d users inserted successfully!\n", numUsers)
 
 	msgStmt, err := db.Prepare("INSERT INTO messages (user_id, message) VALUES ($1, $2)")
 	if err != nil {
@@ -78,16 +75,21 @@ func main() {
 	}
 	defer msgStmt.Close()
 
-	for i := 0; i < numMessages; i++ {
-		randomUserIndex := rand.Intn(numUsers)
-		userID := userIDs[randomUserIndex]
-		messageContent := fmt.Sprintf("Hello from user %s! This is message number %d.", userID.String()[:8], i+1)
+	for _, user := range userIDs {
+		numMessages := rand.Intn(maxMessagesPerSeed-minMessagesPerSeed+1) + minMessagesPerSeed
+		log.Info("Generating and inserting %d messages for %s...\n", numMessages, user)
 
-		_, err = msgStmt.Exec(userID, messageContent)
-		if err != nil {
-			log.Fatalf("Error inserting message %d: %v", i, err)
+		for i := range numMessages {
+			randomUserIndex := rand.Intn(numUsers)
+			userID := userIDs[randomUserIndex]
+			messageContent := fmt.Sprintf("Hello from user %s! This is message number %d.", userID.String()[:8], i+1)
+
+			_, err = msgStmt.Exec(userID, messageContent)
+			if err != nil {
+				log.Fatalf("Error inserting message %d: %v", i, err)
+			}
 		}
-	}
 
-	fmt.Printf("%d messages inserted successfully!\n", numMessages)
+		log.Info("%d messages inserted successfully!\n", numMessages)
+	}
 }
