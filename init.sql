@@ -1,9 +1,9 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY,
   username VARCHAR(255) NOT NULL UNIQUE
 );
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
   message_id SERIAL PRIMARY KEY,
   user_id UUID NOT NULL,
   message TEXT NOT NULL,
