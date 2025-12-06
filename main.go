@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
@@ -19,8 +18,6 @@ const (
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	dbConnStr := os.Getenv("DATABASE_URL")
 	if dbConnStr == "" {
 		log.Fatal("DATABASE_URL environment variable not set. Please set it to your PostgreSQL connection string.")
@@ -54,25 +51,7 @@ func main() {
 	fmt.Printf("Generating and inserting %d users...\n", numUsers)
 	userIDs := make([]uuid.UUID, numUsers)
 
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatalf("Failed to begin transaction for users: %v", err)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		} else if err != nil {
-			tx.Rollback()
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Fatalf("Failed to commit user transaction: %v", err)
-			}
-		}
-	}()
-
-	stmt, err := tx.Prepare("INSERT INTO users (id, username) VALUES ($1, $2)")
+	stmt, err := db.Prepare("INSERT INTO users (id, username) VALUES ($1, $2)")
 	if err != nil {
 		log.Fatalf("Failed to prepare statement for users: %v", err)
 	}
@@ -88,33 +67,12 @@ func main() {
 		userIDs[i] = userID
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.Fatalf("Failed to commit user transaction: %v", err)
-	}
 	fmt.Printf("%d users inserted successfully!\n", numUsers)
 
 	numMessages := rand.Intn(maxMessagesPerSeed-minMessagesPerSeed+1) + minMessagesPerSeed
 	fmt.Printf("Generating and inserting %d messages...\n", numMessages)
 
-	tx, err = db.Begin()
-	if err != nil {
-		log.Fatalf("Failed to begin transaction for messages: %v", err)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		} else if err != nil {
-			tx.Rollback()
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Fatalf("Failed to commit message transaction: %v", err)
-			}
-		}
-	}()
-
-	msgStmt, err := tx.Prepare("INSERT INTO messages (user_id, message) VALUES ($1, $2)")
+	msgStmt, err := db.Prepare("INSERT INTO messages (user_id, message) VALUES ($1, $2)")
 	if err != nil {
 		log.Fatalf("Failed to prepare statement for messages: %v", err)
 	}
@@ -131,8 +89,5 @@ func main() {
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.Fatalf("Failed to commit message transaction: %v", err)
-	}
 	fmt.Printf("%d messages inserted successfully!\n", numMessages)
 }
