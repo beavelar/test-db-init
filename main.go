@@ -32,6 +32,7 @@ func init() {
 func main() {
 	if generateMockData := os.Getenv("GENERATE_MOCK_DATA"); generateMockData == "" || generateMockData == "false" {
 		logger.Info("Skipping script", "GENERATE_MOCK_DATA", generateMockData)
+		return
 	}
 
 	dbConnStr := os.Getenv("DATABASE_URL")
